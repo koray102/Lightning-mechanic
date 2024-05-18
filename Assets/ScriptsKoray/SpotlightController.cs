@@ -106,7 +106,7 @@ public class SpotlightController : MonoBehaviour
             }else
             {
                 Debug.Log("çıkıcam, " + interactableSc + ", " + interactableList.Count);
-                interactableSc.NotInteract();
+                interactableSc.NotInteract(false);
                 //interactableListTotal.Remove(interactableSc);
             }
         }

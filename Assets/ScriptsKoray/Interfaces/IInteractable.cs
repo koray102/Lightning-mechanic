@@ -5,5 +5,5 @@ using UnityEngine;
 public interface IInteractable
 {
     public void OnInteract(Vector3 movePosition, bool isFocused);
-    public void NotInteract();
+    public void NotInteract(bool isLightning);
 }

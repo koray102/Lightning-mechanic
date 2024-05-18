@@ -14,14 +14,20 @@ public class Follower : MonoBehaviour, IInteractable
     private bool hasLooped = false;
     private float pathLength;
 
-    public void NotInteract()
+    public void NotInteract(bool isLightingLocal)
     {
         isLighting = false;
     }
 
     public void OnInteract(Vector3 movePosition, bool isFocused)
     {
-        isLighting = true;
+        if(!isFocused)
+        {
+            isLighting = true;
+        }else
+        {
+            isLighting = false;
+        }
     }
 
     void Start()

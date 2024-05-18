@@ -37,11 +37,11 @@ public class FocusObject : MonoBehaviour, IInteractable
             rb.useGravity = false;
         }else
         {
-            NotInteract();
+            NotInteract(true);
         }
     }
 
-    public void NotInteract()
+    public void NotInteract(bool isLightning)
     {
         Debug.Log("Bıraktım focus");
 
