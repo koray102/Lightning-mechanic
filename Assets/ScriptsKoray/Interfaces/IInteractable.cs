@@ -4,6 +4,8 @@ using UnityEngine;
 
 public interface IInteractable
 {
-    public void OnInteract(Vector3 movePosition, bool isFocused);
-    public void NotInteract(bool isLightning);
+    enum InteractionState { Focused, NotFocused, LightningObject, BothFocused, BothNotFocused, NotLightning };
+    InteractionState State { get; set; }
+    public void OnInteract(Vector3 movePosition, GameObject lightener);
+    public void NotInteract(GameObject lightener);
 }

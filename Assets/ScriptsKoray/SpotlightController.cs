@@ -2,17 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Experimental.GlobalIllumination;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 public class SpotlightController : MonoBehaviour
 {
     private Light spotlight;
     private float distance;
-    private Vector3 lookPosition;
+    internal Vector3 lookPosition;
+    internal bool isFocused;
+    private bool isOpened;
+    private bool restartInteractables;
     private List<IInteractable> interactableListTotal = new List<IInteractable>();
+    private List<IInteractable> interactableList = new List<IInteractable>();
     [SerializeField] private float carryDistance;
     [SerializeField] private int segments = 10;
     [SerializeField] private LayerMask ignoreRaycast;
-    [SerializeField] private bool isFocused;
     [SerializeField] private float focusedSpotAngle;
     [SerializeField] private float notFocusedSpotAngle;
     [SerializeField] private float focusedInnerSpotAngle;
@@ -20,7 +25,6 @@ public class SpotlightController : MonoBehaviour
     [SerializeField] private float focusedIntensity;
     [SerializeField] private float notFocusedIntensity;
     
-
     void Start()
     {
         spotlight = gameObject.GetComponent<Light>();
@@ -29,85 +33,131 @@ public class SpotlightController : MonoBehaviour
 
     void Update()
     {
-        if(isFocused)
+        if(Input.GetMouseButtonDown(0))
         {
-            spotlight.spotAngle = focusedSpotAngle;
-            spotlight.innerSpotAngle = focusedInnerSpotAngle;
+            isOpened = !isOpened;
+            restartInteractables = true;
+        }
 
-            spotlight.intensity = focusedIntensity;
+        if(Input.GetMouseButtonDown(1))
+        {
+            isFocused = !isFocused;
+            restartInteractables = true;
+        }
+
+        if(isOpened)
+        {
+            if(isFocused)
+            {
+                spotlight.spotAngle = focusedSpotAngle;
+                spotlight.innerSpotAngle = focusedInnerSpotAngle;
+
+                spotlight.intensity = focusedIntensity;
+            }else
+            {
+                spotlight.spotAngle = notFocusedSpotAngle;
+                spotlight.innerSpotAngle = notFocusedInnerSpotAngle;
+
+                spotlight.intensity = notFocusedIntensity;
+            }
         }else
         {
-            spotlight.spotAngle = notFocusedSpotAngle;
-            spotlight.innerSpotAngle = notFocusedInnerSpotAngle;
-
-            spotlight.intensity = notFocusedIntensity;
+            spotlight.intensity = 0;
         }
     }
 
     void FixedUpdate()
     {
-        // Işık kaynağından ileri doğru bir ışın oluştur
-        Vector3 direction = spotlight.transform.forward;
-        Vector3 startPosition = spotlight.transform.position;
-        List<IInteractable> interactableList = new List<IInteractable>();
-
-        for (int i = 0; i <= segments; i++)
+        if(isOpened)
         {
-            float t = (float)i / segments;
-            Vector3 segmentPosition = Vector3.Lerp(startPosition, startPosition + direction * spotlight.range, t);
-            float radius = Mathf.Lerp(0, spotlight.spotAngle / 8, t);
+            // Işık kaynağından ileri doğru bir ışın oluştur
+            Vector3 direction = spotlight.transform.forward;
+            Vector3 startPosition = spotlight.transform.position;
 
-            // Engel yoksa OverlapSphere kullanarak objeleri algıla
-            Collider[] hitColliders = Physics.OverlapSphere(segmentPosition, radius);
-            foreach (Collider hitCollider in hitColliders)
+            for (int i = 0; i <= segments; i++)
             {
-                distance = (hitCollider.gameObject.transform.position - spotlight.transform.position).magnitude;
+                float t = (float)i / segments;
+                Vector3 segmentPosition = Vector3.Lerp(startPosition, startPosition + direction * spotlight.range, t);
+                float radius = Mathf.Lerp(0, spotlight.spotAngle / 8, t);
 
-                if(distance < spotlight.range && !IsObjectBetween(spotlight.transform.position, hitCollider.gameObject.transform.position, hitCollider.gameObject))
+                // Engel yoksa OverlapSphere kullanarak objeleri algıla
+                Collider[] hitColliders = Physics.OverlapSphere(segmentPosition, radius);
+                foreach (Collider hitCollider in hitColliders)
                 {
-                    GameObject hitObject = hitCollider.gameObject;
-                    //Debug.Log("Işık kaynağı şu obje ile çarpıştı: " + hitObject.name);
+                    distance = (hitCollider.gameObject.transform.position - spotlight.transform.position).magnitude;
 
-                    if(hitObject.TryGetComponent(out IInteractable interactable))
+                    if(distance < spotlight.range && !IsObjectBetween(spotlight.transform.position, hitCollider.gameObject.transform.position, hitCollider.gameObject))
                     {
-                        if(interactableList.Contains(interactable))
-                        {
+                        GameObject hitObject = hitCollider.gameObject;
+                        //Debug.Log("Işık kaynağı şu obje ile çarpıştı: " + hitObject.name);
 
-                        }else
+                        if(hitObject.TryGetComponent(out IInteractable interactable))
                         {
-                            Debug.Log("interactableList: " + interactable);
-                            interactableList.Add(interactable);
+                            if(interactableList.Contains(interactable))
+                            {
+                                //Debug.Log("interactableList already contains: " + interactable);
+                            }else
+                            {
+                                Debug.Log("Added interactableList: " + interactable);
+                                interactableList.Add(interactable);
+                            }
+
+
+                            lookPosition = transform.position + transform.forward * carryDistance;
+                            if(interactableListTotal.Contains(interactable))
+                            {
+                                //Debug.Log("interactableListTotal already contains: " + interactable);
+                                
+                                if (interactable.State == IInteractable.InteractionState.NotLightning)
+                                {
+                                    interactable.OnInteract(lookPosition, gameObject);
+                                }
+
+                            }else
+                            {
+                                //Debug.Log("Added interactableListTotal: " + interactable);
+                                interactableListTotal.Add(interactable);
+
+                                interactable.OnInteract(lookPosition, gameObject);
+                            }
                         }
-
-
-                        if(interactableListTotal.Contains(interactable))
-                        {
-
-                        }else
-                        {
-                            Debug.Log("interactableListTotal: " + interactable);
-                            interactableListTotal.Add(interactable);
-                        }
-
-
-                        lookPosition = transform.position + transform.forward * carryDistance;
-                        interactable.OnInteract(lookPosition, isFocused);
                     }
                 }
             }
-        }
 
-        
-        foreach(IInteractable interactableSc in interactableListTotal)
+            for (int i = interactableListTotal.Count - 1; i >= 0; i--)
+            {
+                IInteractable interactableSc = interactableListTotal[i];
+                
+                if (interactableList.Contains(interactableSc))
+                {
+                    //Debug.Log("Still inside: " + interactableSc);
+                }
+                else
+                {
+                    //Debug.Log("Exit: " + interactableSc);
+                    interactableSc.NotInteract(gameObject);
+                    interactableListTotal.RemoveAt(i);
+                }
+            }
+            
+            interactableList.Clear();
+
+            if(restartInteractables) // normalden focusa alınca eğer focus değmiyosa bug oluyodu ondan alta aldım elleme amk
+            {
+                interactableListTotal.Clear();
+                restartInteractables = false;
+            }
+
+        }else
         {
-            if(interactableList.Contains(interactableSc))
+            if(interactableListTotal.Count > 0)
             {
-
-            }else
-            {
-                Debug.Log("çıkıcam, " + interactableSc + ", " + interactableList.Count);
-                interactableSc.NotInteract(false);
-                //interactableListTotal.Remove(interactableSc);
+                foreach(IInteractable interactableSc in interactableListTotal)
+                {
+                    interactableSc.NotInteract(gameObject);
+                }
+                interactableListTotal.Clear();
             }
         }
     }
@@ -116,7 +166,7 @@ public class SpotlightController : MonoBehaviour
     // SphereCast gizmoslarını çizmek için
     private void OnDrawGizmos()
     {
-        if (spotlight != null)
+        if (spotlight != null && isOpened)
         {
             Gizmos.color = Color.red;
 

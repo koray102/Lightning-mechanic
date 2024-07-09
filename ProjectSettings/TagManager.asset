@@ -6,6 +6,7 @@ TagManager:
   tags:
   - CinemachineTarget
   - SpotLight
+  - Cuttable
   layers:
   - Default
   - TransparentFX
