@@ -7,14 +7,7 @@ public class MirrorObject : BasicObjectBehaviour, IInteractable
     private IInteractable.InteractionState state;
     private Coroutine setReflectionCoroutine;
     internal List<GameObject> lightObjects = new List<GameObject>();
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
+    
     
     public void OnInteract(GameObject lightener)
     {

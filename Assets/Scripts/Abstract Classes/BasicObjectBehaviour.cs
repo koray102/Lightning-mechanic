@@ -4,6 +4,8 @@ using UnityEngine;
 
 public abstract class BasicObjectBehaviour : MonoBehaviour
 {
+    private WaitForFixedUpdate waitFixedTime = new WaitForFixedUpdate();
+
     public IInteractable.InteractionState SetState(GameObject lightener, bool isAdded, List<GameObject> lightObjects)
     {
         if(isAdded)
@@ -58,27 +60,43 @@ public abstract class BasicObjectBehaviour : MonoBehaviour
     }
 
 
-    public IEnumerator MoveTo(Rigidbody rigidbody, float delay, IInteractable.InteractionState state)
+    public void MoveTo(Rigidbody rigidbody, float delay, IInteractable.InteractionState state)
     {
         GameObject spotlight = GameObject.FindGameObjectWithTag("SpotLight");
-        bool canMove = false;
+        bool canMove;
 
         if(state == IInteractable.InteractionState.BothFocused || state == IInteractable.InteractionState.Focused)
         {
             canMove = true;
+        }else
+        {
+            canMove = false;
         }
 
         if(spotlight.TryGetComponent(out SpotlightController spotlightControllerSc) && canMove)
         {
             Vector3 movePosition;
+            Vector3 direction;
+            float speed;
+            Vector3 randomRotation = new Vector3(
+                Random.Range(-0.1f, 0.1f),
+                Random.Range(-0.1f, 0.1f),
+                Random.Range(-0.1f, 0.1f)
+            );
 
-            while(true)
+            movePosition = spotlightControllerSc.lookPosition;
+            direction = (movePosition - rigidbody.position).normalized;
+            speed = Vector3.Distance(rigidbody.position, movePosition) / delay;
+                
+            rigidbody.velocity = direction * speed;
+
+            if (rigidbody.velocity != Vector3.zero)
             {
-                movePosition = spotlightControllerSc.lookPosition;
-                rigidbody.MovePosition(Vector3.Lerp(rigidbody.position, movePosition, Time.fixedDeltaTime / delay));
-
-                yield return new WaitForFixedUpdate();
+                Quaternion targetRotation = Quaternion.LookRotation(rigidbody.velocity);
+                rigidbody.MoveRotation(Quaternion.Slerp(rigidbody.rotation, targetRotation, 0.02f * speed));
             }
+
+            rigidbody.rotation *= Quaternion.Euler(randomRotation * 3);
         }
     }
 }

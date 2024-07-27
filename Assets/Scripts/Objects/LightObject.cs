@@ -11,9 +11,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
     private IInteractable.InteractionState state;
     private bool isColorPicked;
     internal bool isBrightEnough;
-    private Coroutine volumeCoroutine;
-    private Coroutine moveToCoroutine;
-    internal List<GameObject> lightObjects = new List<GameObject>();
+    private Coroutine volumeCoroutine;    internal List<GameObject> lightObjects = new List<GameObject>();
     private List<IInteractable> interactableList = new List<IInteractable>();
     private List<IInteractable> interactableListTotal = new List<IInteractable>();
     [SerializeField] private List<Color> colorList = new List<Color>();
@@ -52,7 +50,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
                             //Debug.Log("interactableList already contains: " + interactable);
                         }else
                         {
-                            Debug.Log("Added interactableList: " + interactable);
+                            //Debug.Log("Added interactableList: " + interactable);
                             interactableList.Add(interactable);
                         }
 
@@ -67,7 +65,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
 
                         }else
                         {
-                            Debug.Log("Added interactableListTotal: " + interactable);
+                            //Debug.Log("Added interactableListTotal: " + interactable);
                             interactableListTotal.Add(interactable);
 
                             interactable.OnInteract(gameObject);
@@ -86,7 +84,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
                 }
                 else
                 {
-                    Debug.Log("Exit: " + interactableSc);
+                    //Debug.Log("Exit: " + interactableSc);
                     interactableSc.NotInteract(gameObject);
                     interactableListTotal.RemoveAt(i);
                 }
@@ -94,17 +92,16 @@ public class LightObject : BasicObjectBehaviour, IInteractable
         }
     }
 
+    
+    private void FixedUpdate()
+    {
+        MoveTo(rb, grabDelay, State);
+    }
+
     public void OnInteract(GameObject lightener)
     {
         State = SetState(lightener, true, lightObjects);
-        SetGravity(State, rb);
-
-        // Taşınabilirlik ayarlama
-        if(moveToCoroutine != null)
-        {
-            StopCoroutine(moveToCoroutine);
-        }
-        moveToCoroutine = StartCoroutine(MoveTo(rb, grabDelay, State));
+        //SetGravity(State, rb);
 
         if(!isColorPicked)
         {
@@ -126,13 +123,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
     public void NotInteract(GameObject lightener)
     {
         State = SetState(lightener, false, lightObjects);
-        SetGravity(State, rb);
-
-        // Taşınabilirlik ayarlama
-        if(moveToCoroutine != null && State != IInteractable.InteractionState.BothFocused && State != IInteractable.InteractionState.Focused)
-        {
-            StopCoroutine(moveToCoroutine);
-        }
+        //SetGravity(State, rb);
 
         if(volumeCoroutine != null)
         {

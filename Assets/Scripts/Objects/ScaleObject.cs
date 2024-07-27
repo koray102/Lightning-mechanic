@@ -5,11 +5,11 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class ScaleObject : BasicObjectBehaviour, IInteractable
 {
+    private WaitForFixedUpdate waitFixedTime = new WaitForFixedUpdate();
     private Rigidbody rb;
     private Vector3 originalScale;
     private IInteractable.InteractionState state;
     private Coroutine scaleCoroutine;
-    private Coroutine moveToCoroutine;
     internal List<GameObject> lightObjects = new List<GameObject>();
     [SerializeField] private Vector3 maxScale = new Vector3(2f, 2f, 2f);
     [SerializeField] private float growDuration = 3f;
@@ -25,20 +25,18 @@ public class ScaleObject : BasicObjectBehaviour, IInteractable
         originalScale = transform.localScale;
     }
 
+    private void FixedUpdate()
+    {
+        MoveTo(rb, grabDelay, State);
+    }
+
 
     public void OnInteract(GameObject lightener)
     {
         //Debug.Log("OnInteract (scale)");
 
         State = SetState(lightener, true, lightObjects);
-        SetGravity(State, rb);
-
-        // Taşınabilirlik ayarlama
-        if(moveToCoroutine != null)
-        {
-            StopCoroutine(moveToCoroutine);
-        }
-        moveToCoroutine = StartCoroutine(MoveTo(rb, grabDelay, State));
+        //SetGravity(State, rb);
 
         // Büyüme küçülme ayarlama 
         if (scaleCoroutine != null)
@@ -59,16 +57,10 @@ public class ScaleObject : BasicObjectBehaviour, IInteractable
 
     public void NotInteract(GameObject lightener)
     {
-        Debug.Log("NotInteract (scale)");
+        //Debug.Log("NotInteract (scale)");
         
         State = SetState(lightener, false, lightObjects);
-        SetGravity(State, rb);
-
-        // Taşınabilirlik ayarlama
-        if(moveToCoroutine != null && State != IInteractable.InteractionState.BothFocused && State != IInteractable.InteractionState.Focused)
-        {
-            StopCoroutine(moveToCoroutine);
-        }
+        //SetGravity(State, rb);
 
         // Büyüme küçülme ayarlama
         if (scaleCoroutine != null)
@@ -92,7 +84,6 @@ public class ScaleObject : BasicObjectBehaviour, IInteractable
         Vector3 startScale = transform.localScale;
 
         float calculatedDuration = duration * Mathf.Abs(targetScale.magnitude - startScale.magnitude) / targetScale.magnitude;
-        Debug.Log(calculatedDuration);
 
         while (time < calculatedDuration)
         {
@@ -100,9 +91,9 @@ public class ScaleObject : BasicObjectBehaviour, IInteractable
                 
             scaleModifier = Vector3.Lerp(startScale, targetScale, time / calculatedDuration);
             transform.localScale = scaleModifier;
-            time += Time.deltaTime;
+            time += Time.fixedDeltaTime;
 
-            yield return null;
+            yield return waitFixedTime;
         }
 
         transform.localScale = targetScale;

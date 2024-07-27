@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -5,15 +6,13 @@ using UnityEngine;
 public class SpotlightRaycast : MonoBehaviour
 {
     [SerializeField] private int rayCount = 10; // Atılacak raycast sayısı
-    [SerializeField] private float notFocusedRadius = 5f; // Çemberin yarıçapı
-    [SerializeField] private float focusedRadius = 2f; // Çemberin yarıçapı
-    [SerializeField] private float distance = 10f; // Çemberin merkeziyle ışık kaynağı arasındaki mesafe
     [SerializeField] private GameObject denemelik;
     [SerializeField] private int segmentNumber;
     [SerializeField] private LayerMask layerMask;
     [SerializeField] private FlaslightSpecsSO flaslightSpecsSO;
     private SpotlightController spotlightControllerSc;
-    private bool isFocused;
+    private Light spotlight;
+    private float distance;
     private bool isOpened;
     private bool restartInteractables;
     private List<IInteractable> interactableListTotal = new List<IInteractable>();
@@ -23,23 +22,18 @@ public class SpotlightRaycast : MonoBehaviour
     private void Start()
     {
         spotlightControllerSc = GetComponent<SpotlightController>();
+
+        spotlight = GetComponent<Light>();
     }
 
     private void Update()
     {
         isOpened = spotlightControllerSc.isOpened;
-        isFocused = spotlightControllerSc.isFocused;
         restartInteractables = flaslightSpecsSO.restartInteractables;
 
         if(isOpened)
         {
-            if(isFocused)
-            {
-                ConicalRaycasts(focusedRadius);
-            }else
-            {
-                ConicalRaycasts(notFocusedRadius);
-            }
+            ConicalRaycasts(CalculateRadius(spotlight.range, spotlight.spotAngle / 2));
         }else
         {
             if(interactableListTotal.Count > 0)
@@ -48,11 +42,11 @@ public class SpotlightRaycast : MonoBehaviour
                 {
                     interactableSc.NotInteract(gameObject);
                 }
+
                 interactableListTotal.Clear();
             }
         }
     }
-
 
     void ConicalRaycasts(float radius)
     {
@@ -60,6 +54,8 @@ public class SpotlightRaycast : MonoBehaviour
         //Vector3 forward = transform.forward;
         Vector3 right = transform.right;
         Vector3 up = transform.up;
+        
+        distance = spotlight.range;
 
         Vector3 center = transform.position + transform.forward * distance; // Çemberin merkezi
         denemelik.transform.position = center;
@@ -70,7 +66,6 @@ public class SpotlightRaycast : MonoBehaviour
             float radiusCalc = radius * ((j + 1) / (float)segmentNumber);
             float rayCountCalc = rayCount * radiusCalc / radius;
 
-
             for (int i = 0; i < rayCountCalc; i++)
             {
                 float angle = i * Mathf.PI * 2f / rayCountCalc;
@@ -79,11 +74,10 @@ public class SpotlightRaycast : MonoBehaviour
 
                 RaycastHit[] hits = new RaycastHit[5];
                 int hitCount = Physics.RaycastNonAlloc(transform.position, direction, hits, distance, layerMask);
-                //Debug.DrawRay(transform.position, direction * distance, Color.green);
 
                 if(hitCount > 0)
                 {
-                    System.Array.Sort(hits, 0, hitCount, new RaycastHitComparer());
+                    Array.Sort(hits, 0, hitCount, new RaycastHitComparer());
                     
                     RaycastHit hit = hits[0];
                     Debug.DrawRay(transform.position, direction * hit.distance, Color.red);
@@ -101,13 +95,15 @@ public class SpotlightRaycast : MonoBehaviour
                             {
                                 interactable.OnInteract(gameObject);
                             }
-                        }
-                        else
+                        }else
                         {
                             interactableListTotal.Add(interactable);
                             interactable.OnInteract(gameObject);
                         }
                     }
+                }else
+                {
+                    Debug.DrawRay(transform.position, direction * distance, Color.green);
                 }
             }
         }
@@ -120,8 +116,7 @@ public class SpotlightRaycast : MonoBehaviour
             if (interactableList.Contains(interactableSc))
             {
                 //Debug.Log("Still inside: " + interactableSc);
-            }
-            else
+            }else
             {
                 //Debug.Log("Exit: " + interactableSc);
                 interactableSc.NotInteract(gameObject);
@@ -137,6 +132,15 @@ public class SpotlightRaycast : MonoBehaviour
             flaslightSpecsSO.restartInteractables = false;
         }
     }
+
+
+    private float CalculateRadius(float L, float angle)
+    {
+        float r = L * Mathf.Tan(angle * Mathf.Deg2Rad);
+    
+        return r;
+    }
+
 
     // Bunun hakkında gram fikrim yok
     class RaycastHitComparer : IComparer<RaycastHit>
