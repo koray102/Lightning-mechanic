@@ -3205,7 +3205,7 @@ PrefabInstance:
     - target: {fileID: 7191145379365722319, guid: 236b5b1ea5f30e04eb28668b4923d728,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.55
+      value: 11.33
       objectReference: {fileID: 0}
     - target: {fileID: 7191145379365722319, guid: 236b5b1ea5f30e04eb28668b4923d728,
         type: 3}
@@ -6622,9 +6622,24 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9105063018106113349, guid: d8523b150d2dd5a4893d05c9fcafd7a7,
         type: 3}
+      propertyPath: rayCount
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 9105063018106113349, guid: d8523b150d2dd5a4893d05c9fcafd7a7,
+        type: 3}
       propertyPath: denemelik
       value: 
       objectReference: {fileID: 1703959489}
+    - target: {fileID: 9105063018106113349, guid: d8523b150d2dd5a4893d05c9fcafd7a7,
+        type: 3}
+      propertyPath: segmentNumber
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 9105063018106113349, guid: d8523b150d2dd5a4893d05c9fcafd7a7,
+        type: 3}
+      propertyPath: allowedRayCount
+      value: 420
+      objectReference: {fileID: 0}
     - target: {fileID: 9105063018106113351, guid: d8523b150d2dd5a4893d05c9fcafd7a7,
         type: 3}
       propertyPath: m_UseColorTemperature

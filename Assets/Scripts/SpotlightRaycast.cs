@@ -1,6 +1,6 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class SpotlightRaycast : MonoBehaviour
@@ -8,6 +8,7 @@ public class SpotlightRaycast : MonoBehaviour
     [SerializeField] private int rayCount = 10; // Atılacak raycast sayısı
     [SerializeField] private GameObject denemelik;
     [SerializeField] private int segmentNumber;
+    [SerializeField] private int allowedRayCount;
     [SerializeField] private LayerMask layerMask;
     [SerializeField] private FlaslightSpecsSO flaslightSpecsSO;
     private SpotlightController spotlightControllerSc;
@@ -15,6 +16,7 @@ public class SpotlightRaycast : MonoBehaviour
     private float distance;
     private bool isOpened;
     private bool restartInteractables;
+    private Coroutine canonicalRaycastCoroutine;
     private List<IInteractable> interactableListTotal = new List<IInteractable>();
     private List<IInteractable> interactableList = new List<IInteractable>();
 
@@ -31,11 +33,17 @@ public class SpotlightRaycast : MonoBehaviour
         isOpened = spotlightControllerSc.isOpened;
         restartInteractables = flaslightSpecsSO.restartInteractables;
 
-        if(isOpened)
+        if(isOpened && canonicalRaycastCoroutine == null)
         {
-            ConicalRaycasts(CalculateRadius(spotlight.range, spotlight.spotAngle / 2));
-        }else
+            canonicalRaycastCoroutine = StartCoroutine(ConicalRaycasts());
+        }else if(!isOpened)
         {
+            if(canonicalRaycastCoroutine != null)
+            {
+                StopCoroutine(canonicalRaycastCoroutine);
+                canonicalRaycastCoroutine = null;
+            }
+
             if(interactableListTotal.Count > 0)
             {
                 foreach(IInteractable interactableSc in interactableListTotal)
@@ -48,88 +56,125 @@ public class SpotlightRaycast : MonoBehaviour
         }
     }
 
-    void ConicalRaycasts(float radius)
-    {
-        Vector3 position = transform.position;
-        //Vector3 forward = transform.forward;
-        Vector3 right = transform.right;
-        Vector3 up = transform.up;
-        
-        distance = spotlight.range;
 
-        Vector3 center = transform.position + transform.forward * distance; // Çemberin merkezi
-        denemelik.transform.position = center;
-        Transform denemelikTransform = denemelik.transform;
+    private IEnumerator ConicalRaycasts()
+    {   
+        float radius;
+        Vector3 position;
+        Vector3 right;
+        Vector3 up;
 
-        for (int j = 0; j < segmentNumber; j++)
+        Vector3 center;
+        Transform denemelikTransform;
+
+        RaycastHit[] hits = new RaycastHit[5];
+
+        while(true)
         {
-            float radiusCalc = radius * ((j + 1) / (float)segmentNumber);
-            float rayCountCalc = rayCount * radiusCalc / radius;
+            radius = CalculateRadius(spotlight.range, spotlight.spotAngle / 2);
+            int throwedRayCount = 0;
 
-            for (int i = 0; i < rayCountCalc; i++)
+            position = transform.position;
+            //Vector3 forward = transform.forward;
+            right = transform.right;
+            up = transform.up;
+            
+            distance = spotlight.range;
+
+            center = transform.position + transform.forward * distance; // Çemberin merkezi
+            denemelik.transform.position = center;
+            denemelikTransform = denemelik.transform;
+
+            for (int j = 0; j < segmentNumber; j++)
             {
-                float angle = i * Mathf.PI * 2f / rayCountCalc;
-                Vector3 direction2 = (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * radiusCalc;
-                Vector3 direction = (center + denemelikTransform.TransformDirection(direction2) - position).normalized;
+                float radiusCalc = radius * ((j + 1) / (float)segmentNumber);
+                int rayCountCalc = Mathf.CeilToInt(rayCount * radiusCalc / radius);
 
-                RaycastHit[] hits = new RaycastHit[5];
-                int hitCount = Physics.RaycastNonAlloc(transform.position, direction, hits, distance, layerMask);
-
-                if(hitCount > 0)
+                for (int i = 0; i < rayCountCalc; i++)
                 {
-                    Array.Sort(hits, 0, hitCount, new RaycastHitComparer());
-                    
-                    RaycastHit hit = hits[0];
-                    Debug.DrawRay(transform.position, direction * hit.distance, Color.red);
+                    throwedRayCount++;
 
-                    if (hit.collider != null && hit.collider.TryGetComponent(out IInteractable interactable))
+                    float angle = i * Mathf.PI * 2f / rayCountCalc;
+                    Vector3 direction2 = (right * Mathf.Cos(angle) + up * Mathf.Sin(angle)) * radiusCalc;
+                    Vector3 direction = (center + denemelikTransform.TransformDirection(direction2) - position).normalized;
+
+                    hits = new RaycastHit[5];
+                    int hitCount = Physics.RaycastNonAlloc(transform.position, direction, hits, distance, layerMask);
+
+                    if(hitCount > 0)
                     {
-                        if (!interactableList.Contains(interactable))
-                        {
-                            interactableList.Add(interactable);
-                        }
+                        Array.Sort(hits, 0, hitCount, new RaycastHitComparer());
+                        
+                        RaycastHit hit = hits[0];
+                        Debug.DrawRay(transform.position, direction * hit.distance, Color.red);
 
-                        if (interactableListTotal.Contains(interactable))
+                        if (hit.collider != null && hit.collider.TryGetComponent(out IInteractable interactable))
                         {
-                            if (interactable.State == IInteractable.InteractionState.NotLightning)
+                            if (!interactableList.Contains(interactable))
                             {
+                                interactableList.Add(interactable);
+                            }
+
+                            if (interactableListTotal.Contains(interactable))
+                            {
+                                if (interactable.State == IInteractable.InteractionState.NotLightning)
+                                {
+                                    interactable.OnInteract(gameObject);
+                                }
+                            }else
+                            {
+                                interactableListTotal.Add(interactable);
                                 interactable.OnInteract(gameObject);
                             }
-                        }else
-                        {
-                            interactableListTotal.Add(interactable);
-                            interactable.OnInteract(gameObject);
                         }
+                    }else
+                    {
+                        Debug.DrawRay(transform.position, direction * distance, Color.green);
                     }
-                }else
-                {
-                    Debug.DrawRay(transform.position, direction * distance, Color.green);
+                
+
+                    if(throwedRayCount >= allowedRayCount)
+                    {
+                        throwedRayCount = 0;
+
+                        position = transform.position;
+                        right = transform.right;
+                        up = transform.up;
+
+                        center = transform.position + transform.forward * distance; // Çemberin merkezi
+                        denemelik.transform.position = center;
+                        denemelikTransform = denemelik.transform;
+                        
+                        yield return null;
+                    }
                 }
             }
-        }
 
 
-        for (int i = interactableListTotal.Count - 1; i >= 0; i--)
-        {
-            IInteractable interactableSc = interactableListTotal[i];
-                
-            if (interactableList.Contains(interactableSc))
+            for (int i = interactableListTotal.Count - 1; i >= 0; i--)
             {
-                //Debug.Log("Still inside: " + interactableSc);
-            }else
-            {
-                //Debug.Log("Exit: " + interactableSc);
-                interactableSc.NotInteract(gameObject);
-                interactableListTotal.RemoveAt(i);
+                IInteractable interactableSc = interactableListTotal[i];
+                    
+                if (interactableList.Contains(interactableSc))
+                {
+                    //Debug.Log("Still inside: " + interactableSc);
+                }else
+                {
+                    //Debug.Log("Exit: " + interactableSc);
+                    interactableSc.NotInteract(gameObject);
+                    interactableListTotal.RemoveAt(i);
+                }
             }
-        }
 
-        interactableList.Clear();
+            interactableList.Clear();
 
-        if(restartInteractables) // normalden focusa alınca eğer focus değmiyosa bug oluyodu ondan alta aldım elleme amk
-        {
-            interactableListTotal.Clear();
-            flaslightSpecsSO.restartInteractables = false;
+            if(restartInteractables) // normalden focusa alınca eğer focus değmiyosa bug oluyodu ondan alta aldım elleme amk
+            {
+                interactableListTotal.Clear();
+                flaslightSpecsSO.restartInteractables = false;
+            }
+
+            yield return null;
         }
     }
 
