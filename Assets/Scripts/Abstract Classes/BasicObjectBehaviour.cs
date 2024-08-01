@@ -4,8 +4,6 @@ using UnityEngine;
 
 public abstract class BasicObjectBehaviour : MonoBehaviour
 {
-    private WaitForFixedUpdate waitFixedTime = new WaitForFixedUpdate();
-
     public IInteractable.InteractionState SetState(GameObject lightener, bool isAdded, List<GameObject> lightObjects)
     {
         if(isAdded)

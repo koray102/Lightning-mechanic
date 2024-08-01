@@ -9,11 +9,13 @@ public class LightObject : BasicObjectBehaviour, IInteractable
     private Rigidbody rb;
     private Light lightComponent;
     private IInteractable.InteractionState state;
-    private bool isColorPicked;
     internal bool isBrightEnough;
-    private Coroutine volumeCoroutine;    internal List<GameObject> lightObjects = new List<GameObject>();
+    private Coroutine volumeCoroutine;
+    internal List<GameObject> lightObjects = new List<GameObject>();
     private List<IInteractable> interactableList = new List<IInteractable>();
     private List<IInteractable> interactableListTotal = new List<IInteractable>();
+    internal enum lightType{Random, Red, Green, Blue};
+    [SerializeField] internal lightType currentLightType;
     [SerializeField] private List<Color> colorList = new List<Color>();
     [SerializeField] private float effectRadius;
     [SerializeField] private float maxIntensity;
@@ -28,6 +30,21 @@ public class LightObject : BasicObjectBehaviour, IInteractable
 
         rb = GetComponent<Rigidbody>();
         rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+        if(currentLightType == lightType.Random)
+        {
+            int randomIndex = Random.Range(0, colorList.Count);
+            lightComponent.color = colorList[randomIndex];
+        }else if(currentLightType == lightType.Red)
+        {
+            lightComponent.color = Color.red;
+        }else if (currentLightType == lightType.Green)
+        {
+            lightComponent.color = Color.green;
+        }else
+        {
+            lightComponent.color = Color.blue;
+        }
     }
 
     void Update()
@@ -102,14 +119,6 @@ public class LightObject : BasicObjectBehaviour, IInteractable
     {
         State = SetState(lightener, true, lightObjects);
         //SetGravity(State, rb);
-
-        if(!isColorPicked)
-        {
-            int randomIndex = Random.Range(0, colorList.Count);
-
-            lightComponent.color = colorList[randomIndex];
-            isColorPicked = true;
-        }
         
         if(volumeCoroutine != null)
         {
@@ -154,6 +163,7 @@ public class LightObject : BasicObjectBehaviour, IInteractable
         lightComponent.intensity = targetVolume;
     }
 
+
     private void OnDrawGizmos()
     {
         if (isBrightEnough)
@@ -164,10 +174,10 @@ public class LightObject : BasicObjectBehaviour, IInteractable
         }
     }
 
+
     public IInteractable.InteractionState State
     {
         get { return state; }
         set { state = value; }
     }
-
 }

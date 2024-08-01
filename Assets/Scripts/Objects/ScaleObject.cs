@@ -5,7 +5,6 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class ScaleObject : BasicObjectBehaviour, IInteractable
 {
-    private WaitForFixedUpdate waitFixedTime = new WaitForFixedUpdate();
     private Rigidbody rb;
     private Vector3 originalScale;
     private IInteractable.InteractionState state;
@@ -91,9 +90,9 @@ public class ScaleObject : BasicObjectBehaviour, IInteractable
                 
             scaleModifier = Vector3.Lerp(startScale, targetScale, time / calculatedDuration);
             transform.localScale = scaleModifier;
-            time += Time.fixedDeltaTime;
+            time += Time.deltaTime;
 
-            yield return waitFixedTime;
+            yield return null;
         }
 
         transform.localScale = targetScale;
