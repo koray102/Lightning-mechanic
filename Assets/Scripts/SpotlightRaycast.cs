@@ -113,11 +113,8 @@ public class SpotlightRaycast : MonoBehaviour
                             if (!interactableList.Contains(interactable))
                             {
                                 interactableList.Add(interactable);
-                            }else
-                            {
-                                continue;
                             }
-
+                            
                             if (interactableListTotal.Contains(interactable))
                             {
                                 if (interactable.State == IInteractable.InteractionState.NotLightning)

@@ -5,10 +5,12 @@ using UnityEngine;
 public class ColorDetection : MonoBehaviour
 {
     [SerializeField] private GameObject totalColorObject;
+    [SerializeField] private GameObject targetColorObject;
     [SerializeField] private float colorObjectMaxIntensity;
     private Light totalColorLight;
     private Color color;
     private Light objectLight;
+    private float similarity;
     private float redMultiplier = 0;
     private float greenMultiplier = 0;
     private float blueMultiplier = 0;
@@ -22,6 +24,8 @@ public class ColorDetection : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        similarity = MeasureTheSimilarity(totalColorObject, targetColorObject);
+        Debug.Log("Similarity: %" + similarity);
     }
 
     private void OnTriggerStay(Collider other)
@@ -88,5 +92,19 @@ public class ColorDetection : MonoBehaviour
         color.b = blue;
 
         totalColorLight.color = color;
+    }
+
+
+    private float MeasureTheSimilarity(GameObject totalLightObj, GameObject targetLightObj)
+    {
+        Light totalLight = totalLightObj.GetComponent<Light>();
+        Light targetLight = targetLightObj.GetComponent<Light>();
+        Color totalColor = totalLight.color;
+        Color targetColor = targetLight.color;
+        float distance;
+
+        distance = Mathf.Pow((totalColor.r - targetColor.r), 2) + Mathf.Pow((totalColor.g - targetColor.g), 2) + Mathf.Pow((totalColor.b - targetColor.b), 2);
+
+        return 100 * distance / 3;
     }
 }
